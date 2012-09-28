@@ -22,7 +22,9 @@ import com.csvreader.CsvWriter;
  *
  */
 public class CSVmanip {
+	static private String lookupFile;
 	private static CsvReader lookupReader;
+	static private String inputFile;
 	private static CsvReader inputReader;
 	
 	private static CsvWriter outputWriter;
@@ -57,12 +59,20 @@ public class CSVmanip {
 		
 		if(args[0].charAt(0) == '-'){ parseOptions(args[0].charAt(1));}
 		
-		getLookup(args);
-		getInput(args);
+		if(!hasOptions) {
+			lookupFile = args[0];
+			inputFile = args[1];
+		} else { 
+			lookupFile = args[1];
+			inputFile = args[2];
+			}
+		
+		getLookup();
+		getInput();
 		doLookUp();
 		
-		if(!variableOut || replaceValue) {
-			outputFile = args[2];
+		if(replaceValue) {
+			outputFile = args[1].toString() + ".out";
 		} else { outputFile = args[3]; }
 		writeOutput();
 
@@ -86,16 +96,14 @@ public class CSVmanip {
 		
 	}
 	
-	private static void getLookup(String[] args){
+	private static void getLookup(){
 		
 		Scanner in = new Scanner(System.in);
 		
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		
 		try {
-			if(!hasOptions) {
-				lookupReader = new CsvReader(args[0]);
-			} else { lookupReader = new CsvReader(args[1]);}
+			lookupReader = new CsvReader(lookupFile);
 			System.out.println("Headers Found in Lookup: ");
 			if(lookupReader.readHeaders()){
 				String[] headers = lookupReader.getHeaders();
@@ -105,20 +113,18 @@ public class CSVmanip {
 			} else { System.out.println("Error Reading lookup headers"); return;}
 			
 			System.out.println("Enter Column number to use for lookup");
-			lookupColumn = 6;
+			lookupColumn = 4;
 			System.out.println("DEBUG "+lookupColumn);
 			//lookupColumn = in.nextInt();
 			
 			if(replaceValue){
 				System.out.println("Enter Column to replace");
-				
-				replaceColumn = in.nextInt();
+				replaceColumn = lookupColumn;
+				System.out.println("DEBUG " + replaceColumn);
+//				replaceColumn = in.nextInt();
 			}
 			
-			if(replaceValue){
-				System.out.println("Enter Column numbers to replace");
-				replaceColumn = in.nextInt();
-			}
+			
 			
 		} catch (FileNotFoundException e) {
 			System.out.println("Error reading Lookup file");
@@ -132,7 +138,7 @@ public class CSVmanip {
 	}
 
 	
-	private static void getInput(String[] args){
+	private static void getInput(){
 		
 		Scanner in = new Scanner(System.in);
 		
@@ -140,9 +146,9 @@ public class CSVmanip {
 		
 		
 		try {
-			if(!hasOptions) {
-				inputReader = new CsvReader(args[1]);
-			} else { inputReader = new CsvReader(args[2]); }
+			
+			inputReader = new CsvReader(inputFile);
+		
 			if(inputReader.readHeaders()){
 				System.out.println("Headers Found in Input: ");
 				for(int i =0; i < inputReader.getHeaderCount(); i++){
@@ -151,12 +157,14 @@ public class CSVmanip {
 			} else { System.out.println("Error Reading input headers"); return;}
 			
 			System.out.println("Enter Column number to use for input");
-			
-			inputColumn = in.nextInt();
+			inputColumn = 0;
+			System.out.println("DEBUG " + inputColumn);
+//			inputColumn = in.nextInt();
 			
 			System.out.println("Enter Column number to use for value");
-			
-			valueColumn = in.nextInt();
+			valueColumn = 1;
+			System.out.println("DEBUG " + valueColumn);
+//			valueColumn = in.nextInt();
 			
 			if(variableOut){
 				System.out.println("Enter Column numbers to print, in order");
@@ -222,24 +230,50 @@ public class CSVmanip {
 				}
 				outputWriter.endRecord();
 				// read through the lookup file
+				lookupReader.close();
+				lookupReader = new CsvReader(lookupFile);
+				lookupReader.readHeaders();
 				while(lookupReader.readRecord()){
 					//go through the headers and check to see if it is the one to replace
 					//print value accordingly
 					for(String header: lookupReader.getHeaders()){
-						if(header.equals(lookupReader.get(replaceColumn))){
+						if(header.equals(lookupReader.getHeader(3))){
+							String ccNum = lookupValueHash.get(lookupReader.get(3)).get(0);
+							String ccTypeCode =  ccNum.substring(0, 0);
+							int ccTypeCodeInt = Integer.parseInt(ccTypeCode);
+							switch (ccTypeCodeInt) {
+							case 4 : 
+								outputWriter.write("Visa");
+								break;
+							case 5 : 
+								outputWriter.write("MasterCard");
+								break;
+							case 6 :
+								outputWriter.write("Discover");
+								break;
+							case 3 :
+								outputWriter.write("AmericanExpress");
+								break;
+							default :
+								outputWriter.write("UNKNOWN");
+							
+							}
+						}
+						if(header.equals(lookupReader.getHeader(replaceColumn))){
 							outputWriter.write(lookupValueHash.get(lookupReader.get(replaceColumn)).get(0));
 						}
 						else {
 							outputWriter.write(lookupReader.get(header));
 						}
-						outputWriter.endRecord();
 					}
+					outputWriter.endRecord();
 				}
 				outputWriter.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			return;
 		}
 		
 		try {
