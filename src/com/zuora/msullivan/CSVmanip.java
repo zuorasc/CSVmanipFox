@@ -109,19 +109,10 @@ public class CSVmanip {
 			System.out.println("DEBUG "+lookupColumn);
 			//lookupColumn = in.nextInt();
 			
-			if(variableOut){
-				System.out.println("Enter Column numbers to print, in order");
+			if(replaceValue){
+				System.out.println("Enter Column to replace");
 				
-				String input = br.readLine();
-				for(String s : input.split(",")){
-					s = s.trim();
-					lookupOutputColumns.add(s);
-				}
-				
-				System.out.println("Columns to print from lookup:");
-				for(String s : lookupOutputColumns){
-					System.out.println(lookupReader.getHeader(Integer.parseInt(s)));
-				}
+				replaceColumn = in.nextInt();
 			}
 			
 			if(replaceValue){
@@ -225,10 +216,26 @@ public class CSVmanip {
 		if(replaceValue){
 			try {
 				outputWriter = new CsvWriter(new FileWriter(outputFile, true), ',');
-				for(String s : lookupValueHash.keySet()){
-//					outputWriter.
+				// Reprint Headers
+				for(String header: lookupReader.getHeaders()){
+					outputWriter.write(header);
 				}
-				
+				outputWriter.endRecord();
+				// read through the lookup file
+				while(lookupReader.readRecord()){
+					//go through the headers and check to see if it is the one to replace
+					//print value accordingly
+					for(String header: lookupReader.getHeaders()){
+						if(header.equals(lookupReader.get(replaceColumn))){
+							outputWriter.write(lookupValueHash.get(lookupReader.get(replaceColumn)).get(0));
+						}
+						else {
+							outputWriter.write(lookupReader.get(header));
+						}
+						outputWriter.endRecord();
+					}
+				}
+				outputWriter.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
