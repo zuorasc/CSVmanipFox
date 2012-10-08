@@ -196,7 +196,11 @@ public class CSVmanip {
 			return;
 		} 
 	}
-	
+	/*
+	 * Uses the lookupColumn to get a set of Keys for the lookupFile 
+	 * then uses the inputColumn and valueColumn to populate a hashTable, from the inputFile
+	 * 
+	 */
 	static void doLookUp(){
 		
 		String key;
@@ -234,6 +238,18 @@ public class CSVmanip {
 	
 	static private void writeOutput(){
 		
+		String cardNumber;
+		String customerID;
+		String ccType;
+		String exprYear;
+		String exprMonth;
+		String name;
+		String addr1;
+		String addr2;
+		String state;
+		String city;
+		String zip;
+		
 		if(replaceValue){
 			try {
 				outputWriter = new CsvWriter(new FileWriter(outputFile, true), ',');
@@ -248,13 +264,39 @@ public class CSVmanip {
 				lookupReader.readHeaders();
 				//TODO: should only print matches
 				Integer line = 0;
+				/*
+				 * Read lookupFile oneLine at a time
+				 * get the card number and card type, then write out.
+				 * 
+				 */
 				while(lookupReader.readRecord()){
 					
+					customerID = lookupReader.get(1);
+					cardNumber = lookupValueHash.get(lookupReader.get(lookupColumn));
+					ccType = getCCType(cardNumber);
+					exprYear= lookupReader.get(6);
+					exprMonth = lookupReader.get(7);
+					name = lookupReader.get(8);
+					addr1 = lookupReader.get(9);
+					addr2 = lookupReader.get(10);
+					state = lookupReader.get(12);
+					city = lookupReader.get(13);
+					zip = lookupReader.get(14);
+					
+					write(customerID, cardNumber, ccType, exprYear, exprMonth, name, addr1, addr2, state, city, zip);
+				}
+				outputWriter.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return;
+					/* OLD Code had checks for null AccountID and CCnum, now done in shell scripts
 					//go through the headers and check to see if it is the one to replace
 					//print value accordingly
 					for(String header: lookupReader.getHeaders()){
 						if (lookupReader.get(replaceColumn) == null ) {
-							System.out.println("null PTProfile for Account: " + lookupReader.get(1) + "@ input line " + line);
+							System.out.println("Account: " + lookupReader.get(1) + " not found @ input line " + line);
 							outputWriter.write(""); 
 						} 
 						else if (lookupValueHash.get(lookupReader.get(replaceColumn)) == null) {
@@ -278,26 +320,7 @@ public class CSVmanip {
 										//outputWriter.write("");
 										ccNum = "100";
 									}
-									String ccTypeCode =  ccNum.substring(0, 1);
-									int ccTypeCodeInt = Integer.parseInt(ccTypeCode);
 									
-									switch (ccTypeCodeInt) {
-									case 4 : 
-										outputWriter.write("Visa");
-										break;
-									case 5 : 
-										outputWriter.write("MasterCard");
-										break;
-									case 6 :
-										outputWriter.write("Discover");
-										break;
-									case 3 :
-										outputWriter.write("AmericanExpress");
-										break;
-									default :
-										outputWriter.write("UNKNOWN");
-									
-									}
 							} catch (Exception e) {
 								System.out.println("Exception in Card Type Lookup for PTProfileID @ input line " + line);
 							}
@@ -322,14 +345,8 @@ public class CSVmanip {
 						}
 					}
 					outputWriter.endRecord();
-					line++;
-				}
-				outputWriter.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			return;
+					line++;//*/
+			
 		}
 		
 		try {
@@ -360,7 +377,72 @@ public class CSVmanip {
 		return;
 	}
 	
+	private static boolean write(String customerAccount, String ccNumber, String ccType, String exprMonth, String exprYear, String name, String addr1, String addr2, String city, String state, String zip){
+		boolean result = true;
+		
+		try {
+			outputWriter.write("");
+			outputWriter.write(customerAccount);
+			outputWriter.write("CreditCard");
+			outputWriter.write(ccType);
+			outputWriter.write(ccNumber);
+			outputWriter.write("");
+			outputWriter.write(exprYear);
+			outputWriter.write(exprMonth);
+			outputWriter.write(name);
+			outputWriter.write(addr1);
+			outputWriter.write(addr2);
+			outputWriter.write("USA");
+			outputWriter.write(state);
+			outputWriter.write(city);
+			outputWriter.write(zip);
+			outputWriter.write("");
+			outputWriter.write("");
+			outputWriter.write("");
+			outputWriter.write("");
+			outputWriter.write("");
+			outputWriter.write("");
+			outputWriter.write("TRUE");
+			outputWriter.write("");
+			outputWriter.write("Active");
+			outputWriter.write("");
+			outputWriter.write("");
+			outputWriter.endRecord();
+			
+		} catch (IOException e) {
+			
+			result = false;
+			e.printStackTrace();
+		}
+		return result;
+	}
 	
+	private static String getCCType(String ccNum){
+		
+		String ccTypeCode =  ccNum.substring(0, 1);
+		int ccTypeCodeInt = Integer.parseInt(ccTypeCode);
+		String result;
+		
+		switch (ccTypeCodeInt) {
+		case 4 : 
+			result = "Visa";
+			break;
+		case 5 : 
+			result = "MasterCard";
+			break;
+		case 6 :
+			result = "Discover";
+			break;
+		case 3 :
+			result = "AmericanExpress";
+			break;
+		default :
+			result = "UNKNOWN";
+		
+		}
+		return result;
+		
+	}
 
 	
 }
